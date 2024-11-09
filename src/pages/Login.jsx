@@ -20,7 +20,6 @@ const Login = () => {
     e.preventDefault();
     const email = e.target.email.value;
     const password = e.target.password.value;
-
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
