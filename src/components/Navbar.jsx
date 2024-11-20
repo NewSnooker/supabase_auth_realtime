@@ -4,7 +4,7 @@ function Navbar() {
   const { user, signOut } = useAuth();
   return (
     <div>
-      <nav className="bg-white px-2 sm:px-4 py-2.5 ">
+      <nav className="bg-white px-2 sm:px-4 py-2.5 shadow-sm">
         <div className="max-w-7xl mx-auto">
           <div className="w-full flex items-center justify-between h-16">
             <h1 className="text-xl font-bold "> Realtime Chat</h1>
