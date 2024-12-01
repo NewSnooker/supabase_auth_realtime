@@ -1,5 +1,6 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "../supabase";
+import { supabase, uploadImage } from "../supabase";
 import { useAuth } from "../contexts/AuthContext";
 import { Send, PlusCircle } from "lucide-react";
 
@@ -7,6 +8,8 @@ const Chat = () => {
   const { user } = useAuth();
   const [rooms, setRooms] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isLoading, setIsLoading] = useState(false); // สถานะการโหลด
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [newRoomName, setNewRoomName] = useState("");
@@ -109,26 +112,45 @@ const Chat = () => {
       console.error("เกิดข้อผิดพลาดในการสร้างห้อง:", error);
     }
   };
+  const handleFileChange = (e) => {
+    setSelectedFile(e.target.files[0]);
+  };
 
   // Send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedRoom) return;
+    if (!newMessage.trim() && !selectedFile) return; // ต้องมีข้อความหรือไฟล์
 
+    let imageUrl = null;
+    if (selectedFile) {
+      try {
+        imageUrl = await uploadImage(selectedFile);
+        setSelectedFile(null); // ล้างไฟล์หลังการอัปโหลด
+        e.target.reset();
+      } catch (error) {
+        console.error("เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ:", error);
+        return;
+      }
+    }
+    setIsLoading(true);
     try {
       const { error } = await supabase.from("messages").insert([
         {
-          content: newMessage,
+          content: newMessage || "",
           user_id: user.id,
           user_email: user.email,
           room_id: selectedRoom,
+          image_url: imageUrl, // เพิ่ม image_url ถ้ามี
         },
       ]);
 
       if (error) throw error;
-      setNewMessage("");
+      setNewMessage(""); // ล้างข้อความ
+      setSelectedFile(null);
+      setIsLoading(false); // ปิดสถานะการโหลดเมื่อเสร็จสิ้น
     } catch (error) {
       console.error("เกิดข้อผิดพลาดในการส่งข้อความ:", error);
+      setIsLoading(false); // ปิดสถานะการโหลดเมื่อเสร็จสิ้น
     }
   };
 
@@ -142,7 +164,7 @@ const Chat = () => {
               type="text"
               value={newRoomName}
               onChange={(e) => setNewRoomName(e.target.value)}
-              placeholder="สร้างห้องใหม่"
+              placeholder="สร้างห้องแชท..."
               className="flex-1 border rounded-lg px-2 py-1 text-sm"
             />
             <button
@@ -193,9 +215,18 @@ const Chat = () => {
                       <div className="text-sm font-semibold mb-1">
                         {message.user_email}
                       </div>
-                      <div className="text-sm break-words">
-                        {message.content}
-                      </div>
+                      {message.content && (
+                        <div className="text-sm break-words">
+                          {message.content}
+                        </div>
+                      )}
+                      {message.image_url && (
+                        <img
+                          src={message.image_url}
+                          alt="รูปภาพที่ส่ง"
+                          className="mt-2 max-w-full rounded-lg"
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -207,8 +238,16 @@ const Chat = () => {
                     type="text"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="พิมพ์ข้อความ..."
+                    placeholder={
+                      isLoading ? "กําลังส่งข้อความ..." : "พิมพ์ข้อความ..."
+                    }
                     className="flex-1 border rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    className="file-input file-input-bordered file-input-primary w-full max-w-xs"
                   />
                   <button
                     type="submit"
