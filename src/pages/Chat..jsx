@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase, uploadImage } from "../supabase";
 import { useAuth } from "../contexts/AuthContext";
-import { Send, PlusCircle } from "lucide-react";
+import { Send, PlusCircle, Loader } from "lucide-react";
 
 const Chat = () => {
   const { user } = useAuth();
@@ -119,7 +119,9 @@ const Chat = () => {
   // Send message
   const handleSendMessage = async (e) => {
     e.preventDefault();
+
     if (!newMessage.trim() && !selectedFile) return; // ต้องมีข้อความหรือไฟล์
+    setIsLoading(true);
 
     let imageUrl = null;
     if (selectedFile) {
@@ -132,7 +134,6 @@ const Chat = () => {
         return;
       }
     }
-    setIsLoading(true);
     try {
       const { error } = await supabase.from("messages").insert([
         {
@@ -175,7 +176,7 @@ const Chat = () => {
             </button>
           </form>
         </div>
-        {rooms.map((room) => (
+        {rooms.map((room, index) => (
           <div
             key={room.id}
             onClick={() => setSelectedRoom(room.id)}
@@ -185,7 +186,7 @@ const Chat = () => {
                 : "hover:bg-gray-200"
             }`}
           >
-            {room.name}
+            {index + 1}. {room.name}
           </div>
         ))}
       </div>
@@ -252,8 +253,13 @@ const Chat = () => {
                   <button
                     type="submit"
                     className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    disabled={isLoading}
                   >
-                    <Send className="h-5 w-5" />
+                    {isLoading ? (
+                      <Loader className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Send className="h-5 w-5" />
+                    )}
                   </button>
                 </div>
               </form>
